@@ -28,6 +28,7 @@ print("answer:", puz.examples[0].answer_a)
 # print(f"solution: {resa}")
 # puz.answer_a = resa
 
+# %%
 puz = Puzzle(year=2024, day=1)
 
 
