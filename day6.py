@@ -117,3 +117,9 @@ print(f"solution: {resb}")
 puz.answer_b = resb
 
 # %%
+
+# get next forward step.
+# get next direction.
+# if next step is not blocked and is not guard visted, look right until next block.
+# if is in corner, +1 to block count.
+# if next step is blocked, update direction, continue loop.
