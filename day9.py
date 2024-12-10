@@ -7,7 +7,7 @@ from aocd.models import Puzzle
 
 # %%
 puz = Puzzle(year=2024, day=9)
-puz.view()
+# puz.view()
 
 
 # %%
@@ -40,11 +40,11 @@ def part1(data=None):
 
 
 # %%
-print("found:", part1(puz.examples[0].input_data))
-print("answer:", puz.examples[0].answer_a)
-resa = part1(puz.input_data)
-print(f"solution: {resa}")
-puz.answer_a = resa
+# print("found:", part1(puz.examples[0].input_data))
+# print("answer:", puz.examples[0].answer_a)
+# resa = part1(puz.input_data)
+# print(f"solution: {resa}")
+# puz.answer_a = resa
 
 # %%
 puz = Puzzle(year=2024, day=9)
@@ -54,9 +54,7 @@ def parse_data2(data: str):
     if len(data) % 2 == 1:
         data += "0"
     types = cycle(["file", "gap"])
-    dsk = []
-    itr = []
-    spc = []
+    dsk, itr, spc = [], [], []
     index = 0
     for val in data:
         type = next(types)
@@ -82,10 +80,10 @@ def part2(data=None):
             continue
         dsk_, itr_, spc_ = dsk.pop(i), itr.pop(i), spc.pop(i)
         spc[space_idx] = 0
-        spc[i - 1] += itr_ + spc_
         dsk.insert(space_idx + 1, dsk_)
         itr.insert(space_idx + 1, itr_)
         spc.insert(space_idx + 1, space - itr_)
+        spc[i] += itr_ + spc_
     register = 0
     result = 0
     for dsk_, itr_, spc_ in zip(dsk, itr, spc):
@@ -97,6 +95,15 @@ def part2(data=None):
 
 
 # %%
+# 0...1...2......33333
+# 0...1...233333......
+# 0...1...233333......
+# 02..1....33333......
+# 021......33333......
+# 021......33333......
+
+# print("found:", part2("1313165"))
+# print("answer:", 169)
 print("found:", part2(puz.examples[0].input_data))
 print("answer:", 2858)
 resb = part2(puz.input_data)
