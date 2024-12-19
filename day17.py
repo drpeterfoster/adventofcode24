@@ -53,7 +53,7 @@ def run_program(registers, program):
         elif opcode == 4:  # bxc
             registers["B"] ^= registers["C"]
         elif opcode == 5:  # out
-            output.append(str(get_operand_value(operand, registers) % 8))
+            output.append(get_operand_value(operand, registers) % 8)
         elif opcode == 6:  # bdv
             registers["B"] = registers["A"] // 2 ** get_operand_value(operand, registers)
         elif opcode == 7:  # cdv
@@ -61,13 +61,13 @@ def run_program(registers, program):
         else:
             raise ValueError("Invalid opcode")
         ip += 2
-    return ",".join(output)
+    return output
 
 
 def part1(data=None):
     registers, program = parse_data(data)
     result = run_program(registers, program)
-    return result
+    return ",".join(map(str, result))
 
 
 # %%
@@ -75,53 +75,41 @@ print("found:", part1(puz.examples[0].input_data))
 print("answer:", puz.examples[0].answer_a)
 resa = part1(puz.input_data)
 print(f"solution: {resa}")
-# puz.answer_a = resa
+puz.answer_a = resa
+
 
 # %%
-puz = Puzzle(year=2024, day=17)
-
-
-def run_symbolic_program(registers, program):
-    registers["A"] = "a"  # Set A to symbolic variable 'a'
-    ip = 0
-    while ip < len(program):
-        opcode = program[ip]
-        operand = program[ip + 1]
-        if opcode == 0:  # adv
-            registers["A"] = f"({registers['A']}) // 2 ** {get_operand_value(operand, registers)}"
-        elif opcode == 1:  # bxl
-            registers["B"] ^= operand
-        elif opcode == 2:  # bst
-            registers["B"] = f"{get_operand_value(operand, registers)} % 8"
-        elif opcode == 3:  # jnz
-            if registers["A"] != 0:
-                ip = operand
-                continue
-        elif opcode == 4:  # bxc
-            registers["B"] ^= registers["C"]
-        elif opcode == 5:  # out
-            # No change needed for output
-            pass
-        elif opcode == 6:  # bdv
-            registers["B"] = f"({registers['A']}) // 2 ** {get_operand_value(operand, registers)}"
-        elif opcode == 7:  # cdv
-            registers["C"] = f"({registers['A']}) // 2 ** {get_operand_value(operand, registers)}"
-        else:
-            raise ValueError("Invalid opcode")
-        ip += 2
-    return registers
-
-
-def reverse_engineer(registers, program):
-    symbolic_registers = run_symbolic_program(registers.copy(), program)
-    # Here you would solve the symbolic equation for 'a' to match the desired output
-    # This is a placeholder for the actual symbolic solving logic
-    return symbolic_registers
+# you sneaky buggers...
+def oneliner(o):
+    registers, program = parse_data(puz.input_data)
+    registers["A"] = vali = int(o, 8)
+    result = run_program(registers, program)
+    print(vali, o)
+    print(result)
+    print(program[-len(result) :])
 
 
 def part2(data=None):
     registers, program = parse_data(data)
-    result = reverse_engineer(registers, program)
+    stems = ["0o"]
+    vals_checked = set()
+    while True:
+        newstems = []
+        for stem in stems:
+            for i in range(8):
+                valo = stem + str(i)
+                vali = int(valo, 8)
+                if vali not in vals_checked:
+                    vals_checked.add(vali)
+                    reg = {k: v for k, v in registers.items()}
+                    reg["A"] = vali
+                    result = run_program(reg, program)
+                    if result == program[-len(result) :]:
+                        newstems.append(valo)
+        stems = newstems
+        if len(result) == len(program):
+            break
+    result = min([int(x, 8) for x in stems])
     return result
 
 
@@ -132,5 +120,3 @@ print("answer:", 117440)
 resb = part2(puz.input_data)
 print(f"solution: {resb}")
 puz.answer_b = resb
-
-# %%
