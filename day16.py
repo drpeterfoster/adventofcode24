@@ -30,7 +30,7 @@ def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def solver(grid, start, end):
+def solver(grid, start, end, directions):
     open_set = []
     heappush(open_set, (0, start, (start[0], start[1] - 1), 0))  # (priority, current, previous, direction)
     came_from = {}
@@ -48,7 +48,7 @@ def solver(grid, start, end):
                 current = came_from[current]
             return total_path[::-1], score
 
-        for direction, (dr, dc) in enumerate([(0, 1), (1, 0), (0, -1), (-1, 0)]):
+        for direction, (dr, dc) in enumerate(directions):
             neighbor = (current[0] + dr, current[1] + dc)
             if (
                 0 <= neighbor[0] < len(grid)
@@ -70,7 +70,8 @@ def solver(grid, start, end):
 
 def part1(data=None):
     grid, start, end = parse_data(data)
-    _, score = solver(grid, start, end)
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    _, score = solver(grid, start, end, directions)
     return score
 
 
@@ -90,45 +91,15 @@ puz.answer_a = resa
 
 
 # %%
+
+
 def part2(data=None):
     grid, start, end = parse_data(data)
-    _, score = solver(grid, start, end)
-    paths = bfs(grid, start, end, score)
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    paths, scores = solver(grid, start, end, directions)
+    paths = [path for path, score in zip(paths, scores) if score == min(scores)]
     positions = {pos for path in paths for pos in path}
     return len(positions)
-
-
-def bfs(grid, start, end, target_score):
-    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    queue = deque([(start, [start], 0, (0, 1))])  # (current position, path, score, previous direction)
-    valid_paths = []
-    steps = 0
-    while queue:
-        current, path, score, prev_direction = queue.pop()
-
-        if current == end and score == target_score:
-            valid_paths.append(path)
-            continue
-
-        for direction, (dr, dc) in enumerate(directions):
-            neighbor = (current[0] + dr, current[1] + dc)
-            if (
-                0 <= neighbor[0] < len(grid)
-                and 0 <= neighbor[1] < len(grid[0])
-                and grid[neighbor[0]][neighbor[1]] != "#"
-                and neighbor not in path
-            ):
-                new_score = score + 1
-                if direction != directions.index(prev_direction):
-                    new_score += 1000
-
-                if new_score <= target_score:
-                    queue.append((neighbor, path + [neighbor], new_score, (dr, dc)))
-        steps += 1
-        if steps % 100000 == 0:
-            print(len(queue), len(valid_paths), end=" ")
-
-    return valid_paths
 
 
 # %%
@@ -141,8 +112,8 @@ print(
     ),
 )
 print("answer:", 64)
-resb = part2(puz.input_data)
-print(f"solution: {resb}")
-puz.answer_b = resb
+# resb = part2(puz.input_data)
+# print(f"solution: {resb}")
+# puz.answer_b = resb
 
 # %%
