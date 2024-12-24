@@ -3,11 +3,14 @@ import re
 import numpy as np
 import pandas as pd
 from aocd.models import Puzzle
+from functools import lru_cache
+from itertools import product
+from tqdm import tqdm
 
 
 # %%
 puz = Puzzle(year=2024, day=21)
-puz.view()
+# puz.view()
 
 
 # %%
@@ -15,171 +18,118 @@ def parse_data(data: str):
     return data.strip().split("\n")
 
 
-NUMBER_PATHS = {
-    ("1", "2"): ">",
-    ("1", "3"): ">>",
-    ("1", "4"): "^",
-    ("1", "5"): "^>",
-    ("1", "6"): "^>>",
-    ("1", "7"): "^^",
-    ("1", "8"): "^^>",
-    ("1", "9"): ">>^^",
-    ("1", "0"): ">v",
-    ("1", "A"): ">>v",
-    ("2", "1"): "<",
-    ("2", "3"): ">",
-    ("2", "4"): "^<",
-    ("2", "5"): "^",
-    ("2", "6"): "^>",
-    ("2", "7"): "^^<",
-    ("2", "8"): "^^",
-    ("2", "9"): "^^>",
-    ("2", "0"): "v",
-    ("2", "A"): "v>",
-    ("3", "1"): "<<",
-    ("3", "2"): "<",
-    ("3", "4"): "^<<",
-    ("3", "5"): "^<",
-    ("3", "6"): "^",
-    ("3", "7"): "<<^^",
-    ("3", "8"): "^^<",
-    ("3", "9"): "^^",
-    ("3", "0"): "v<",
-    ("3", "A"): "v",
-    ("4", "1"): "v",
-    ("4", "2"): "v>",
-    ("4", "3"): "v>>",
-    ("4", "5"): ">",
-    ("4", "6"): ">>",
-    ("4", "7"): "^",
-    ("4", "8"): "^>",
-    ("4", "9"): "^>>",
-    ("4", "0"): ">vv",
-    ("4", "A"): ">>vv",
-    ("5", "1"): "v<",
-    ("5", "2"): "v",
-    ("5", "3"): "v>",
-    ("5", "4"): "<",
-    ("5", "6"): ">",
-    ("5", "7"): "^<",
-    ("5", "8"): "^",
-    ("5", "9"): "^>",
-    ("5", "0"): "vv",
-    ("5", "A"): "vv>",
-    ("6", "1"): "v<<",
-    ("6", "2"): "v<",
-    ("6", "3"): "v",
-    ("6", "4"): "<<",
-    ("6", "5"): "<",
-    ("6", "7"): "^<<",
-    ("6", "8"): "^<",
-    ("6", "9"): "^",
-    ("6", "0"): "vv<",
-    ("6", "A"): "vv",
-    ("7", "1"): "vv",
-    ("7", "2"): "vv>",
-    ("7", "3"): "vv>>",
-    ("7", "4"): "v",
-    ("7", "5"): "v>",
-    ("7", "6"): "v>>",
-    ("7", "8"): ">",
-    ("7", "9"): ">>",
-    ("7", "0"): ">vvv",
-    ("7", "A"): ">>vvv",
-    ("8", "1"): "vv<",
-    ("8", "2"): "vv",
-    ("8", "3"): "vv>",
-    ("8", "4"): "v<",
-    ("8", "5"): "v",
-    ("8", "6"): "v>",
-    ("8", "7"): "<",
-    ("8", "9"): ">",
-    ("8", "0"): "vvv",
-    ("8", "A"): "vvv>",
-    ("9", "1"): "vv<<",
-    ("9", "2"): "vv<",
-    ("9", "3"): "vv",
-    ("9", "4"): "v<<",
-    ("9", "5"): "v<",
-    ("9", "6"): "v",
-    ("9", "7"): "<<",
-    ("9", "8"): "<",
-    ("9", "0"): "vvv<",
-    ("9", "A"): "vvv",
-    ("0", "1"): "^<",
-    ("0", "2"): "^",
-    ("0", "3"): "^>",
-    ("0", "4"): "^^<",
-    ("0", "5"): "^^",
-    ("0", "6"): "^^>",
-    ("0", "7"): "^^^<",
-    ("0", "8"): "^^^",
-    ("0", "9"): "^^^>",
-    ("0", "A"): ">",
-    ("A", "1"): "^<<",
-    ("A", "2"): "^<",
-    ("A", "3"): "^",
-    ("A", "4"): "^^<<",
-    ("A", "5"): "^^<",
-    ("A", "6"): "^^",
-    ("A", "7"): "^^^<<",
-    ("A", "8"): "^^^<",
-    ("A", "9"): "^^^",
-    ("A", "0"): "<",
+KEYS = {
+    "7": (0, 0),
+    "8": (0, 1),
+    "9": (0, 2),
+    "4": (1, 0),
+    "5": (1, 1),
+    "6": (1, 2),
+    "1": (2, 0),
+    "2": (2, 1),
+    "3": (2, 2),
+    "0": (3, 1),
+    "A": (3, 2),
+}
+ARROWS = {
+    "^": (0, 1),
+    "A": (0, 2),
+    "<": (1, 0),
+    "v": (1, 1),
+    ">": (1, 2),
 }
 
-ARROW_PATHS = {
-    ("^", "v"): "v",
-    ("^", "A"): ">",
-    ("^", "<"): "v<",
-    ("^", ">"): "v>",
-    ("v", "^"): "^",
-    ("v", "A"): ">^",
-    ("v", "<"): "<",
-    ("v", ">"): ">",
-    ("A", "^"): "<",
-    ("A", "v"): "<v",
-    ("A", "<"): "v<<",
-    ("A", ">"): "v",
-    ("<", "^"): ">^",
-    ("<", "v"): ">",
-    ("<", "A"): ">>^",
-    ("<", ">"): ">>",
-    (">", "^"): "^<",
-    (">", "v"): "<",
-    (">", "A"): "^",
-    (">", "<"): "<<",
-}
+
+def convert_to_coord(coord, kind):
+    return KEYS[coord] if kind == "number" else ARROWS[coord]
+
+
+def convert_to_arrow(path):
+    arrow_code = ""
+    for i in range(1, len(path)):
+        r1, c1 = path[i - 1]
+        r2, c2 = path[i]
+        if r2 == r1 + 1:
+            arrow_code += "v"
+        elif r2 == r1 - 1:
+            arrow_code += "^"
+        elif c2 == c1 + 1:
+            arrow_code += ">"
+        elif c2 == c1 - 1:
+            arrow_code += "<"
+    return arrow_code + "A"
+
+
+def coordinate_paths(start, end, kind):
+    if kind == "number":
+        forbidden = (3, 0)
+    elif kind == "arrow":
+        forbidden = (0, 0)
+    else:
+        raise ValueError(f"Unknown kind: {kind}")
+
+    def is_valid_path(path):
+        return forbidden not in path
+
+    def generate_paths(start, end):
+        paths = []
+        queue = [(start, [start])]
+        while queue:
+            (current, path) = queue.pop(0)
+            if current == end:
+                paths.append(path)
+            else:
+                r, c = current
+                for dr, dc in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
+                    next_step = (r + dr, c + dc)
+                    if (
+                        min(start[0], end[0]) <= next_step[0] <= max(start[0], end[0])
+                        and min(start[1], end[1])
+                        <= next_step[1]
+                        <= max(start[1], end[1])
+                        and next_step not in path
+                    ):
+                        queue.append((next_step, path + [next_step]))
+        return paths
+
+    all_paths = generate_paths(start, end)
+    valid_paths = [path for path in all_paths if is_valid_path(path)]
+    return valid_paths
+
+
+@lru_cache(maxsize=None)
+def compute_input_pair(ab, kind):
+    start = convert_to_coord(ab[0], kind)
+    end = convert_to_coord(ab[1], kind)
+    paths = coordinate_paths(start, end, kind)
+    apaths = [convert_to_arrow(path) for path in paths]
+    return apaths
+
+@lru_cache(maxsize=None)
+def compute_input(code, kind):
+    codes = []
+    for i in range(0, len(code) - 1):
+        codes.append(compute_input_pair(code[i : i + 2], kind))
+    flat_codes = ["".join(comb) for comb in product(*codes)]
+    return flat_codes
 
 
 def part1(data=None):
     codes = parse_data(data)
     result = 0
-    for code in codes:
-        inst1 = make_code(code, NUMBER_PATHS)
-        inst2 = make_code(inst1, ARROW_PATHS)
-        inst3 = make_code(inst2, ARROW_PATHS)
-        score = int(code[:-1]) * len(inst3)
-        # print("<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A")
-        # print(inst3)
-        # print()
-        # print("<A>Av<<AA>^AA>AvAA^A<vAAA>^A")
-        # print(inst2)
-        # print()
-        # print("^A<<^^A>>AvvvA")
-        # print(inst1)
-        # print(code)
-        # print(len(inst3), int(code[:-1]))
+    for code in tqdm(codes):
+        best = None
+        codes1 = compute_input("A" + code, "number")
+        for code1 in codes1:
+            codes2 = compute_input("A" + code1, "arrow")
+            for code2 in codes2:
+                codes3 = compute_input("A" + code2, "arrow")
+                for code3 in codes3:
+                    if best is None or len(code3) < len(best):
+                        best = code3
+        score = len(best) * int(code[:-1])
         result += score
     return result
-
-
-def make_code(code, keypad):
-    code = "A" + code
-    inst = ""
-    for i in range(len(code) - 1):
-        inst += keypad.get((code[i], code[i + 1]), "") + "A"
-    return inst
 
 
 # %%
@@ -187,7 +137,7 @@ print(" found:", part1("029A\n980A\n179A\n456A\n379A\n"))
 print("answer:", puz.examples[0].answer_a)
 resa = part1(puz.input_data)
 print(f"solution: {resa}")
-# puz.answer_a = resa
+puz.answer_a = resa
 
 
 # %%
@@ -203,5 +153,3 @@ print("answer:", puz.examples[0].answer_b)
 # resb = part2(puz.input_data)
 # print(f"solution: {resb}")
 # puz.answer_b = resb
-
-# %%
