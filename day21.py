@@ -93,7 +93,8 @@ def coordinate_paths(start, end, kind):
         return paths
 
     all_paths = generate_paths(start, end)
-    valid_paths = [path for path in all_paths if is_valid_path(path)]
+    min_len = min(len(path) for path in all_paths)
+    valid_paths = [path for path in all_paths if is_valid_path(path) and len(path) == min_len]
     return valid_paths
 
 
@@ -105,7 +106,7 @@ def compute_input_pair(ab, kind):
     apaths = [convert_to_arrow(path) for path in paths]
     return apaths
 
-@lru_cache(maxsize=None)
+
 def compute_input(code, kind):
     codes = []
     for i in range(0, len(code) - 1):
@@ -113,20 +114,26 @@ def compute_input(code, kind):
     flat_codes = ["".join(comb) for comb in product(*codes)]
     return flat_codes
 
+    
 
-def part1(data=None):
+def part1(data=None, level=2):
+    def compute_robot(codes, level, best):
+        if level != 0:
+            level -= 1
+            for code in codes:
+                codes1 = compute_input("A" + code, "arrow")
+                best = compute_robot(codes1, level, best)
+        else:
+            for code in codes:
+                if best is None or len(code) < len(best):
+                    best = code
+        return best
+
     codes = parse_data(data)
     result = 0
     for code in tqdm(codes):
-        best = None
         codes1 = compute_input("A" + code, "number")
-        for code1 in codes1:
-            codes2 = compute_input("A" + code1, "arrow")
-            for code2 in codes2:
-                codes3 = compute_input("A" + code2, "arrow")
-                for code3 in codes3:
-                    if best is None or len(code3) < len(best):
-                        best = code3
+        best = compute_robot(codes1, level, None)
         score = len(best) * int(code[:-1])
         result += score
     return result
@@ -139,17 +146,11 @@ resa = part1(puz.input_data)
 print(f"solution: {resa}")
 puz.answer_a = resa
 
-
 # %%
-def part2(data=None):
-    input = parse_data(data)
-    result = 0
-    return result
-
-
-# %%
-print("found:", part2(puz.examples[0].input_data))
-print("answer:", puz.examples[0].answer_b)
+print("found:", part1("029A\n980A\n179A\n456A\n379A\n", level=25))
+print("answer:", "NA")
 # resb = part2(puz.input_data)
 # print(f"solution: {resb}")
 # puz.answer_b = resb
+
+# %%
