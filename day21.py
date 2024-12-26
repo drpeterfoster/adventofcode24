@@ -94,7 +94,9 @@ def coordinate_paths(start, end, kind):
 
     all_paths = generate_paths(start, end)
     min_len = min(len(path) for path in all_paths)
-    valid_paths = [path for path in all_paths if is_valid_path(path) and len(path) == min_len]
+    valid_paths = [
+        path for path in all_paths if is_valid_path(path) and len(path) == min_len
+    ]
     return valid_paths
 
 
@@ -114,7 +116,6 @@ def compute_input(code, kind):
     flat_codes = ["".join(comb) for comb in product(*codes)]
     return flat_codes
 
-    
 
 def part1(data=None, level=2):
     def compute_robot(codes, level, best):
@@ -147,10 +148,58 @@ print(f"solution: {resa}")
 puz.answer_a = resa
 
 # %%
-print("found:", part1("029A\n980A\n179A\n456A\n379A\n", level=25))
-print("answer:", "NA")
+# DOESN'T WORK ON HUMAN LIFESPANS WITH AVAILABLE MEMORY
+# print("found:", part1("029A\n980A\n179A\n456A\n379A\n", level=25))
+# print("answer:", "NA")
 # resb = part2(puz.input_data)
 # print(f"solution: {resb}")
 # puz.answer_b = resb
+
+# %%
+################################
+# ok, we gotta start over on this one.  ^ is NOT working.
+# this time, let's try to do this more symbolically; using this cool new 
+# complext number thing I just learned about to register dx/dy.
+# similar to before, caching with recursion is the way to go.
+# SO MUCH SIMPLER.  omg i was overthinking this so much at first.
+
+from functools import cache
+
+N = {'7':0, '8':1, '9':2, '4':1j, '5':1+1j, '6':2+1j, 
+      '1':2j, '2':1+2j, '3':2+2j, ' ':3j, '0':1+3j, 'A':2+3j}
+R = {' ':0, '^':1, 'A':2, '<':1j, 'v':1+1j, '>':2+1j}
+
+@cache
+def path(start, end):
+    pad = N if (start in N and end in N) else R
+    diff = pad[end] - pad[start]
+    dx, dy = int(diff.real), int(diff.imag)
+    yy = ("^"*-dy) + ("v"*dy)
+    xx = ("<"*-dx) + (">"*dx)
+
+    bad = pad[" "] - pad[start]
+    prefer_yy_first = (dx>0 or bad==dx) and bad!=dy*1j
+    return (yy+xx if prefer_yy_first else xx+yy) + "A"
+    
+@cache
+def length(code, depth, s=0):
+    if depth == 0: return len(code)
+    for i, c in enumerate(code):
+        s += length(path(code[i-1], c), depth-1)
+    return s
+
+def part2(data=None, levels=3):
+    codes = parse_data(data)
+    results = [int(code[:-1]) * length(code, levels) for code in codes]
+    return sum(results)
+
+# %%
+print(" found:", part2("029A\n980A\n179A\n456A\n379A"))
+print("answer:", puz.examples[0].answer_a)
+print(" found:", part2("029A\n980A\n179A\n456A\n379A", 26))
+# print("answer:", puz.examples[0].answer_a)
+resb = part2(puz.input_data, 26)
+print(f"solution: {resb}")
+puz.answer_b = resb
 
 # %%
