@@ -68,6 +68,40 @@ def solver(grid, start, end, directions):
     return None, None
 
 
+def solver_all_paths(grid, start, end, directions, target_score):
+    open_set = deque([(start, [start], (start[0], start[1] - 1), 0, 0)])  # (current, path, previous, direction, score)
+    visited = {}
+    all_paths = []
+    i = 0
+    while open_set:
+        i += 1
+        if i % 10000 == 0:
+            print(len(open_set))
+        current, path, previous, prev_direction, score = open_set.popleft()
+
+        if current == end and score == target_score:
+            all_paths.append(path)
+            continue
+
+        for direction, (dr, dc) in enumerate(directions):
+            neighbor = (current[0] + dr, current[1] + dc)
+            if (
+                0 <= neighbor[0] < len(grid)
+                and 0 <= neighbor[1] < len(grid[0])
+                and grid[neighbor[0]][neighbor[1]] != "#"
+                and neighbor not in path
+            ):
+                score_ = score + 1
+                if direction != prev_direction:
+                    score_ += 1000
+                visited_score = visited.get((neighbor[0], neighbor[1], direction), float("inf"))
+                if score_ <= target_score and score_ <= visited_score:
+                    visited[(neighbor[0], neighbor[1], direction)] = score_
+                    open_set.append((neighbor, path + [neighbor], current, direction, score_))
+
+    return all_paths
+
+
 def part1(data=None):
     grid, start, end = parse_data(data)
     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -96,8 +130,8 @@ puz.answer_a = resa
 def part2(data=None):
     grid, start, end = parse_data(data)
     directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-    paths, scores = solver(grid, start, end, directions)
-    paths = [path for path, score in zip(paths, scores) if score == min(scores)]
+    target_score = part1(data)
+    paths = solver_all_paths(grid, start, end, directions, target_score)
     positions = {pos for path in paths for pos in path}
     return len(positions)
 
@@ -112,8 +146,7 @@ print(
     ),
 )
 print("answer:", 64)
-# resb = part2(puz.input_data)
-# print(f"solution: {resb}")
-# puz.answer_b = resb
-
+resb = part2(puz.input_data)
+print(f"solution: {resb}")
+puz.answer_b = resb
 # %%
